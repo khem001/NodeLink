@@ -1725,12 +1725,24 @@ export default class YouTubeSource {
       return this.getTrackUrl(fallbackTrack, itag)
     }
 
-    const mirrored = await this._tryMirrorSourceTrackUrl(
-      decodedTrack,
-      itag,
-      forceRefresh
-    )
-    if (mirrored) return mirrored
+    // SBR Music: do not silently substitute a different recording when the
+    // selected YouTube video's audio cannot be retrieved. Mirror fallback can
+    // select another artist, a cover, or unrelated background music.
+    // Explicit opt-in keeps the original NodeLink behavior available.
+    if (process.env.SBR_ALLOW_YOUTUBE_MIRROR === 'true') {
+      const mirrored = await this._tryMirrorSourceTrackUrl(
+        decodedTrack,
+        itag,
+        forceRefresh
+      )
+      if (mirrored) return mirrored
+    } else {
+      logger(
+        'warn',
+        'YouTube',
+        `No working audio URL for YouTube video ${decodedTrack.identifier}; mirror substitution disabled.`
+      )
+    }
 
     logger(
       'error',
