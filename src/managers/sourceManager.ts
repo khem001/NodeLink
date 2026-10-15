@@ -574,6 +574,7 @@ export default class SourcesManager implements SourceManagerLike {
     return this.resolvingSources.run(nextActiveSources, async () => {
       // ISRC Upscale: If track has ISRC and is from YouTube, try high-quality sources first.
       if (
+        process.env.SBR_ALLOW_YOUTUBE_MIRROR === 'true' &&
         track.isrc &&
         !isUpscaling &&
         !isRecovering &&
@@ -616,7 +617,7 @@ export default class SourcesManager implements SourceManagerLike {
         }
       }
 
-      return (await sourceGetTrackUrl.call(
+      const resolved = (await sourceGetTrackUrl.call(
         instance,
         track,
         itag,
@@ -627,6 +628,32 @@ export default class SourcesManager implements SourceManagerLike {
         trackInfo?: TrackInfoExtended
         additionalData?: Record<string, unknown>
       }
+      const replacement = resolved.newTrack?.info
+      const selectedYouTube = ['youtube', 'ytmusic'].includes(track.sourceName)
+      if (
+        selectedYouTube &&
+        process.env.SBR_ALLOW_YOUTUBE_MIRROR !== 'true' &&
+        replacement &&
+        (replacement.identifier !== track.identifier ||
+          replacement.sourceName !== track.sourceName)
+      ) {
+        return {
+          exception: {
+            message: 'Selected recording substitution refused.',
+            severity: 'fault'
+          }
+        }
+      }
+      logger('debug', 'Sources', 'Track resolution identity', {
+        requested: { source: track.sourceName, id: track.identifier },
+        resolved: {
+          source: replacement?.sourceName ?? track.sourceName,
+          id: replacement?.identifier ?? track.identifier
+        },
+        phase: resolved.exception ? 'resolution_failed' : 'url_resolved',
+        audibleVerified: false
+      })
+      return resolved
     })
   }
 

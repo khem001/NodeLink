@@ -8,7 +8,8 @@
     "start:dist": "node --dns-result-order=ipv4first dist/src/index.js",
     "start:bun": "bun run --dns-result-order=ipv4first src/index.ts",
     "type-check": "tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "node --experimental-test-module-mocks --test src/modules/config/configMigration.test.ts scripts/playback-regression.test.mjs"
   },
   "type": "module",
   "main": "src/index.ts",
