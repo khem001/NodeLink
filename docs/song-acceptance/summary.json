@@ -1,0 +1,82 @@
+{
+  "date_utc": "2026-10-16",
+  "baselines": {
+    "SBR-Music": "fe16dc1b98a95a472656cb36f3ec56e4f91071dd",
+    "NodeLink": "de3c27359696019091ac1f7c5c0ed0cf22bcca72"
+  },
+  "tracks": [
+    {
+      "name": "STARTRIP — Julia (CV: Aimi)",
+      "overall": "BLOCKED",
+      "provider": "youtube",
+      "canonical_url": null,
+      "original_version": "UNVERIFIED",
+      "search_error": "Cloud proxy CONNECT 403",
+      "nodelink_failure_claim": false,
+      "audio_compared": false
+    },
+    {
+      "name": "แสงสุดท้าย — Bodyslam",
+      "overall": "BLOCKED",
+      "provider": "youtube",
+      "canonical_url": null,
+      "original_version": "UNVERIFIED",
+      "search_error": "Cloud proxy CONNECT 403",
+      "nodelink_failure_claim": false,
+      "audio_compared": false
+    },
+    {
+      "name": "Sky High — Elektronomia [NCS Release]",
+      "overall": "UNVERIFIED",
+      "technical_source_path": "PASS",
+      "provider": "soundcloud",
+      "candidate_url": "https://soundcloud.com/elektronomia/elektronomia-sky-high",
+      "track_id": "300585048",
+      "sourceName": "soundcloud",
+      "artist": "Elektronomia",
+      "duration_seconds": 236.301,
+      "isrc": "QM42K1701373",
+      "reference_provenance": "same public artist SoundCloud upload via yt-dlp, not independent original/master reference",
+      "cold_warm_refresh": "PASS",
+      "replacement_observed": false,
+      "decoded_seconds": 15,
+      "pcm_sha256": "0028ccc3d991ecda20a780e32a8dd33ac1894079d8c36c32ddad8848272990e6",
+      "chromaprint_words_each": 100,
+      "chromaprint_bit_error_rate": 0.0,
+      "audible_discord_verified": false
+    }
+  ],
+  "tests": {
+    "SBR_baseline": {
+      "passed": 19,
+      "failed": 0
+    },
+    "NodeLink_baseline": {
+      "passed": 16,
+      "failed": 0
+    },
+    "NodeLink_fault_injection_before_fix": {
+      "passed": 16,
+      "failed": 3
+    },
+    "NodeLink_followup": {
+      "passed": 20,
+      "failed": 0
+    }
+  },
+  "fix_branch": "fix/sbr-soundcloud-cache-identity",
+  "fix_tested_source_sha256": "5f6bba844ca837eb3874416c87c02154ff5174934b954401b8ed1c7364b679ff",
+  "reference_requirements": [
+    "canonical original/version URL for STARTRIP",
+    "canonical original/version URL for แสงสุดท้าย",
+    "confirm the Sky High artist-upload candidate/version",
+    "authorized independent reference audio URL(s) and sample offset(s), ideally the same 15-second region"
+  ],
+  "limitations": [
+    "No Production connection or data access",
+    "No Discord bot or extra deployed server",
+    "Real SoundCloud source requests used platform HTTPS proxy via an explicit transport adapter, not default NodeLink host routing",
+    "PCM decoded by ffmpeg after actual NodeLink HLS loader; NodeLink native DSP/Opus/Discord voice not exercised",
+    "Same-source fingerprint agreement is not independent recording provenance"
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "time_utc": "2026-10-16T01:52:39.171222+00:00",
+  "scope": "public extractor search, not NodeLink",
+  "results": [
+    {
+      "test": "startrip",
+      "query": "ytsearch3:STARTRIP Julia Aimi official",
+      "exit": 1,
+      "entries": [],
+      "error": "WARNING: [youtube:search] query \"STARTRIP Julia Aimi official\": Unable to download webpage: <urlopen error Tunnel connection failed: 403 Forbidden> (caused by ProxyError('<urlopen error Tunnel connection failed: 403 Forbidden>')); please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U\nERROR: query \"STARTRIP Julia Aimi official\" page 1: Unable to download API page: <urlopen error Tunnel connection failed: 403 Forbidden> (caused by ProxyError('<urlopen error Tunnel connection failed: 403 Forbidden>')); please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U\n"
+    },
+    {
+      "test": "bodyslam",
+      "query": "ytsearch3:แสงสุดท้าย Bodyslam official",
+      "exit": 1,
+      "entries": [],
+      "error": "WARNING: [youtube:search] query \"แสงสุดท้าย Bodyslam official\": Unable to download webpage: <urlopen error Tunnel connection failed: 403 Forbidden> (caused by ProxyError('<urlopen error Tunnel connection failed: 403 Forbidden>')); please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U\nERROR: query \"แสงสุดท้าย Bodyslam official\" page 1: Unable to download API page: <urlopen error Tunnel connection failed: 403 Forbidden> (caused by ProxyError('<urlopen error Tunnel connection failed: 403 Forbidden>')); please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U\n"
+    },
+    {
+      "test": "skyhigh",
+      "query": "scsearch5:Elektronomia Sky High NCS Release",
+      "exit": 0,
+      "entries": [
+        {
+          "id": "300585048",
+          "title": "Elektronomia - Sky High [NCS Release]",
+          "uploader": "Elektronomia",
+          "channel": null,
+          "channel_id": null,
+          "duration": 236.301,
+          "webpage_url": "https://soundcloud.com/elektronomia/elektronomia-sky-high",
+          "url": "https://api.soundcloud.com/tracks/soundcloud%3Atracks%3A300585048",
+          "artist": null,
+          "track": "Elektronomia - Sky High [NCS Release]",
+          "extractor_key": null
+        },
+        {
+          "id": "324716355",
+          "title": "Elektronomia - Sky High [NCS Release]",
+          "uploader": "TheFlamingSavage 🔥",
+          "channel": null,
+          "channel_id": null,
+          "duration": 238.114,
+          "webpage_url": "https://soundcloud.com/theflamingsavage/elektronomia-sky-high-ncs-release",
+          "url": "https://api.soundcloud.com/tracks/soundcloud%3Atracks%3A324716355",
+          "artist": null,
+          "track": "Elektronomia - Sky High [NCS Release]",
+          "extractor_key": null
+        },
+        {
+          "id": "947160523",
+          "title": "Elektronomia - Sky High pt. II [NCS Release]",
+          "uploader": "NCS",
+          "channel": null,
+          "channel_id": null,
+          "duration": 247.661,
+          "webpage_url": "https://soundcloud.com/nocopyrightsounds/elektronomia-sky-high-ptii-ncs-release",
+          "url": "https://api.soundcloud.com/tracks/soundcloud%3Atracks%3A947160523",
+          "artist": null,
+          "track": "Elektronomia - Sky High pt. II [NCS Release]",
+          "extractor_key": null
+        },
+        {
+          "id": "2232651059",
+          "title": "Elektronomia - Sky High (Carpe Remix) [NCS Release]",
+          "uploader": "NCS",
+          "channel": null,
+          "channel_id": null,
+          "duration": 98.301,
+          "webpage_url": "https://soundcloud.com/nocopyrightsounds/elektronomia-sky-high-carpe-remix-ncs-release",
+          "url": "https://api.soundcloud.com/tracks/soundcloud%3Atracks%3A2232651059",
+          "artist": null,
+          "track": "Elektronomia - Sky High (Carpe Remix) [NCS Release]",
+          "extractor_key": null
+        },
+        {
+          "id": "2240356430",
+          "title": "Elektronomia - The Sky High [NCS Release]",
+          "uploader": "NCS",
+          "channel": null,
+          "channel_id": null,
+          "duration": 195.202,
+          "webpage_url": "https://soundcloud.com/nocopyrightsounds/elektronomia-the-sky-high-ncs-release",
+          "url": "https://api.soundcloud.com/tracks/soundcloud%3Atracks%3A2240356430",
+          "artist": null,
+          "track": "Elektronomia - The Sky High [NCS Release]",
+          "extractor_key": null
+        }
+      ],
+      "error": ""
+    }
+  ]
+}

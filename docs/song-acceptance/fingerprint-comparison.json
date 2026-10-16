@@ -1,0 +1,26 @@
+{
+  "scope": "sample consistency; recording provenance must be independently established",
+  "reference_provenance": "same artist-published SoundCloud URL via separate yt-dlp transport, not an independent master reference",
+  "samples": [
+    {
+      "seconds": 15.0,
+      "pcm_sha256": "0028ccc3d991ecda20a780e32a8dd33ac1894079d8c36c32ddad8848272990e6"
+    },
+    {
+      "seconds": 15.0,
+      "pcm_sha256": "0028ccc3d991ecda20a780e32a8dd33ac1894079d8c36c32ddad8848272990e6"
+    }
+  ],
+  "exact_pcm_match": true,
+  "algorithm": "Chromaprint algorithm 1",
+  "fingerprint_lengths": [
+    100,
+    100
+  ],
+  "best_alignment": {
+    "shift_frames": 0,
+    "overlap_words": 100,
+    "bit_error_rate": 0.0
+  },
+  "limitation": "No calibrated fuzzy-match threshold or full-track/Discord claim. Same-source comparison cannot independently prove original/master/version."
+}

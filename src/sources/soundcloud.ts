@@ -753,13 +753,17 @@ export default class SoundCloudSource implements SoundCloudSourceState {
       return this._buildException('Invalid track info')
     }
 
+    if (forceRefresh) {
+      // A failed stream must not reappear from cache after a refresh failure.
+      this.nodelink.trackCacheManager.delete?.('soundcloud', info.identifier)
+    }
     if (!forceRefresh) {
       const cached =
         this.nodelink.trackCacheManager.get<SoundCloudCachedUrlResult>(
           'soundcloud',
           info.identifier
         )
-      if (cached) {
+      if (cached?.additionalData?.trackIdentifier === String(info.identifier)) {
         const expiresMatch = cached.url.match(/expires=(\d+)/)
         const expires = expiresMatch?.[1]
           ? parseInt(expiresMatch[1], 10) * 1000
@@ -798,8 +802,18 @@ export default class SoundCloudSource implements SoundCloudSourceState {
         return this._buildException(msg)
       }
 
+      // Bind provider metadata to the selected recording before fetching audio.
+      if (!body || String(body.id ?? '') !== String(info.identifier)) {
+        return this._buildException(
+          'SoundCloud resolved track identity mismatch'
+        )
+      }
       const result = await this._selectTranscoding(body)
       if (result && !result.exception) {
+        result.additionalData = {
+          ...result.additionalData,
+          trackIdentifier: String(info.identifier)
+        }
         this.nodelink.trackCacheManager.set(
           'soundcloud',
           info.identifier,
