@@ -745,8 +745,10 @@ export default class SoundCloudSource implements SoundCloudSourceState {
 
   async getTrackUrl(
     info: TrackInfo,
-    forceRefresh: boolean = false
+    itagOrRefresh?: number | boolean,
+    forceRefresh = false
   ): Promise<TrackUrlResult> {
+    forceRefresh = forceRefresh || itagOrRefresh === true
     if (!info?.identifier) {
       return this._buildException('Invalid track info')
     }
@@ -817,8 +819,9 @@ export default class SoundCloudSource implements SoundCloudSourceState {
   async _selectTranscoding(
     body: SoundCloudApiTrack
   ): Promise<SoundCloudStreamUrlResult> {
-    const transcodings: SoundCloudApiTranscoding[] =
-      body.media?.transcodings ?? []
+    const transcodings: SoundCloudApiTranscoding[] = [
+      ...(body.media?.transcodings ?? [])
+    ]
 
     if (!transcodings.length && (body.hls_aac_160_url || body.hls_aac_96_url)) {
       if (body.hls_aac_160_url) {
@@ -876,59 +879,90 @@ export default class SoundCloudSource implements SoundCloudSourceState {
       (t) => t.format?.protocol === 'progressive'
     )
 
-    const selected =
-      progressiveMp3 ||
-      progressiveAac ||
-      hlsAacHigh ||
-      hlsAacStandard ||
-      anyProgressive ||
-      anyHls ||
-      transcodings[0]
-
-    if (!selected?.url) {
-      return this._buildException('No valid transcoding found')
+    const candidates = [
+      ...new Set([
+        progressiveMp3,
+        progressiveAac,
+        hlsAacHigh,
+        hlsAacStandard,
+        anyProgressive,
+        anyHls,
+        ...transcodings
+      ])
+    ].filter((t): t is SoundCloudApiTranscoding => Boolean(t?.url))
+    const failures: string[] = []
+    for (const candidate of candidates) {
+      // Retry formats of the SAME track only; never substitute another song.
+      const result = await this._resolveTranscoding(candidate, body)
+      if (!result.exception) return result
+      failures.push(result.exception.message)
     }
+    return this._buildException(
+      `Failed to resolve stream URL: ${failures.join('; ') || 'no valid transcodings'}`
+    )
+  }
 
-    if (selected.format?.mime_type?.includes('opus')) {
-      logger(
-        'warn',
-        'Sources',
-        `Using Opus codec which may cause decoder issues (track: ${body.id})`
+  async _resolveTranscoding(
+    selected: SoundCloudApiTranscoding,
+    body: SoundCloudApiTrack
+  ): Promise<SoundCloudStreamUrlResult> {
+    const auth = new URL(selected.url!)
+    auth.searchParams.set('client_id', this.clientId ?? '')
+    const streamAuthUrl = auth.href
+    const urlReq = await http1makeRequest(streamAuthUrl, { method: 'GET' })
+    if (urlReq.error || !urlReq.statusCode || urlReq.statusCode >= 400) {
+      return this._buildException(
+        `Transcoding resolution HTTP ${urlReq.statusCode ?? 'unavailable'}`
       )
     }
-
-    const streamAuthUrl = `${selected.url}?client_id=${this.clientId}`
-    const urlReq = await http1makeRequest(streamAuthUrl, { method: 'GET' })
     let finalUrl: string | null = null
-
-    if (urlReq.finalUrl && urlReq.finalUrl !== streamAuthUrl) {
-      finalUrl = urlReq.finalUrl
-    } else if (urlReq.statusCode === 302 || urlReq.statusCode === 301) {
+    const response = urlReq.body
+    // Redirected API responses can still be JSON, not media.
+    if (
+      response &&
+      typeof response === 'object' &&
+      'url' in response &&
+      typeof response.url === 'string'
+    ) {
+      finalUrl = response.url
+    } else if ([301, 302, 307, 308].includes(urlReq.statusCode)) {
       finalUrl =
         typeof urlReq.headers?.location === 'string'
           ? urlReq.headers.location
           : null
     } else if (
-      urlReq.body &&
-      typeof urlReq.body === 'object' &&
-      'url' in urlReq.body &&
-      urlReq.body.url
+      urlReq.statusCode === 200 &&
+      typeof response === 'string' &&
+      response.trimStart().startsWith('#EXTM3U')
     ) {
-      finalUrl = urlReq.body.url as string
-    } else if (urlReq.statusCode === 200) {
-      finalUrl = streamAuthUrl
+      finalUrl = urlReq.finalUrl || streamAuthUrl
+    } else if (
+      urlReq.statusCode === 200 &&
+      urlReq.finalUrl &&
+      urlReq.finalUrl !== streamAuthUrl &&
+      /^(audio\/|application\/(octet-stream|vnd.apple.mpegurl|x-mpegurl))/i.test(
+        String(urlReq.headers?.['content-type'] ?? '')
+      )
+    ) {
+      finalUrl = urlReq.finalUrl
     }
-
-    if (!finalUrl) {
-      return this._buildException('Failed to resolve stream URL')
+    if (!finalUrl)
+      return this._buildException('Invalid transcoding response: no media URL')
+    let media: URL
+    try {
+      media = new URL(finalUrl, streamAuthUrl)
+    } catch {
+      return this._buildException('Invalid media URL')
     }
-
+    if (!['https:', 'http:'].includes(media.protocol))
+      return this._buildException('Invalid media protocol')
     if (
-      finalUrl.includes('cf-preview-media.sndcdn.com') ||
-      finalUrl.includes('/preview/')
+      media.hostname === 'cf-preview-media.sndcdn.com' ||
+      media.pathname.includes('/preview/')
     ) {
       return this._buildException('Track only has preview URL')
     }
+    finalUrl = media.href
 
     const mimeType = selected.format?.mime_type?.toLowerCase() ?? ''
     const protocol = selected.format?.protocol ?? 'progressive'

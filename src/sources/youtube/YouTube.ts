@@ -1315,7 +1315,7 @@ export default class YouTubeSource {
    * Checks the track cache first (unless `forceRefresh` is set), then
    * iterates through configured playback clients. Validates direct URLs
    * with a pre-flight range request and falls back to HLS when direct
-   * URLs return 403. If all clients fail, attempts mirror-source fallback.
+   * URLs return 403. Cross-recording fallback requires explicit SBR_ALLOW_YOUTUBE_MIRROR opt-in.
    *
    * @param decodedTrack - Track metadata to resolve.
    * @param itag - Optional specific format itag to request.
@@ -1327,7 +1327,16 @@ export default class YouTubeSource {
     itag?: number | null,
     forceRefresh = false
   ): Promise<TrackUrlData> {
-    if (decodedTrack.uri?.includes('olak=true')) {
+    const selectedAudio = (
+      decodedTrack as TrackInfo & { audioTrackId?: string }
+    ).audioTrackId
+    const cacheKey = selectedAudio
+      ? `${decodedTrack.identifier}:audio:${selectedAudio}`
+      : decodedTrack.identifier
+    if (
+      process.env.SBR_ALLOW_YOUTUBE_MIRROR === 'true' &&
+      decodedTrack.uri?.includes('olak=true')
+    ) {
       logger(
         'debug',
         'YouTube',
@@ -1383,9 +1392,15 @@ export default class YouTubeSource {
     if (!forceRefresh) {
       const cached = this.nodelink.trackCacheManager?.get<TrackUrlData>(
         'youtube',
-        decodedTrack.identifier
+        cacheKey
       )
-      if (cached) {
+      if (
+        cached &&
+        (process.env.SBR_ALLOW_YOUTUBE_MIRROR === 'true' ||
+          !cached.newTrack ||
+          (cached.newTrack.info?.identifier === decodedTrack.identifier &&
+            cached.newTrack.info?.sourceName === decodedTrack.sourceName))
+      ) {
         const cachedProxyUrl = (
           cached.additionalData as TrackUrlAdditionalData | undefined
         )?.proxy?.url
@@ -1566,7 +1581,7 @@ export default class YouTubeSource {
             }
             this.nodelink.trackCacheManager?.set(
               'youtube',
-              decodedTrack.identifier,
+              cacheKey,
               result,
               1000 * 60 * 60 * 5
             )
@@ -1631,7 +1646,7 @@ export default class YouTubeSource {
               }
               this.nodelink.trackCacheManager?.set(
                 'youtube',
-                decodedTrack.identifier,
+                cacheKey,
                 result,
                 1000 * 60 * 60 * 5
               )
@@ -1686,7 +1701,7 @@ export default class YouTubeSource {
             }
             this.nodelink.trackCacheManager?.set(
               'youtube',
-              decodedTrack.identifier,
+              cacheKey,
               result,
               1000 * 60 * 60 * 5
             )
@@ -1710,27 +1725,19 @@ export default class YouTubeSource {
       }
     }
 
-    if ((decodedTrack as TrackInfo & { audioTrackId?: string }).audioTrackId) {
-      logger(
-        'warn',
-        'YouTube',
-        `Requested audio track "${(decodedTrack as TrackInfo & { audioTrackId?: string }).audioTrackId}" not found on any client. Falling back to default audio.`
+    // An explicitly selected audio language/track must not fall back to default
+    // audio (which may be a different recording or instrumental).
+    if (
+      !(decodedTrack as TrackInfo & { audioTrackId?: string }).audioTrackId &&
+      process.env.SBR_ALLOW_YOUTUBE_MIRROR === 'true'
+    ) {
+      const mirrored = await this._tryMirrorSourceTrackUrl(
+        decodedTrack,
+        itag,
+        forceRefresh
       )
-
-      const fallbackTrack = { ...decodedTrack } as TrackInfo & {
-        audioTrackId?: string
-      }
-      delete fallbackTrack.audioTrackId
-
-      return this.getTrackUrl(fallbackTrack, itag)
+      if (mirrored) return mirrored
     }
-
-    const mirrored = await this._tryMirrorSourceTrackUrl(
-      decodedTrack,
-      itag,
-      forceRefresh
-    )
-    if (mirrored) return mirrored
 
     logger(
       'error',
@@ -3136,8 +3143,7 @@ export default class YouTubeSource {
           ?.mimeType || ''
       const seekIsWebm =
         seekMime.toLowerCase().includes('webm') ||
-        (typeof currentItag === 'number' &&
-          YOUTUBE_WEBM_ITAGS.has(currentItag))
+        (typeof currentItag === 'number' && YOUTUBE_WEBM_ITAGS.has(currentItag))
       if (!seekIsWebm) {
         logger(
           'warn',
