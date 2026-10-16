@@ -1,7 +1,7 @@
 name: Playback regression checks
 on:
   pull_request:
-    branches: [dev]
+    branches: [dev, 'fix/sbr-audio-identity-recovery']
 jobs:
   playback:
     runs-on: ubuntu-latest
