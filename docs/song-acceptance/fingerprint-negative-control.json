@@ -1,0 +1,26 @@
+{
+  "scope": "sample consistency; recording provenance must be independently established",
+  "reference_provenance": "synthetic 440Hz tone negative control, not a song reference",
+  "samples": [
+    {
+      "seconds": 15.0,
+      "pcm_sha256": "0028ccc3d991ecda20a780e32a8dd33ac1894079d8c36c32ddad8848272990e6"
+    },
+    {
+      "seconds": 15.0,
+      "pcm_sha256": "4b693501dc861f8346284de25cceac1efaf50ec33921df64df043927a3d59830"
+    }
+  ],
+  "exact_pcm_match": false,
+  "algorithm": "Chromaprint algorithm 1",
+  "fingerprint_lengths": [
+    100,
+    100
+  ],
+  "best_alignment": {
+    "shift_frames": -1,
+    "overlap_words": 99,
+    "bit_error_rate": 0.492739898989899
+  },
+  "limitation": "No calibrated fuzzy-match threshold or full-track/Discord claim. Same-source comparison cannot independently prove original/master/version."
+}

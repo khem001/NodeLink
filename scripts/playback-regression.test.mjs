@@ -228,3 +228,117 @@ test('manager refuses a replacement leaking through any YouTube source route', a
   assert.ok(result.exception)
   assert.equal(result.url, undefined)
 })
+
+test('SoundCloud rejects resolver track-ID substitution before requesting media', async () => {
+  const s = sc()
+  let calls = 0
+  request = async () => {
+    calls++
+    return calls === 1
+      ? {
+          statusCode: 200,
+          body: {
+            id: 999,
+            media: {
+              transcodings: [transcoding('https://api.invalid/other-track')]
+            }
+          }
+        }
+      : {
+          statusCode: 200,
+          body: { url: 'https://media.invalid/wrong-recording' }
+        }
+  }
+  const result = await s.getTrackUrl({ identifier: '300585048' })
+  assert.ok(result.exception)
+  assert.equal(calls, 1)
+})
+
+test('SoundCloud ignores a cache entry bound to another track and recovers the selected ID', async () => {
+  const s = sc()
+  s.nodelink.trackCacheManager.get = () => ({
+    url: 'https://media.invalid/wrong?expires=9999999999',
+    additionalData: { trackIdentifier: 'wrong-id' }
+  })
+  let calls = 0
+  request = async () =>
+    ++calls === 1
+      ? {
+          statusCode: 200,
+          body: {
+            id: 300585048,
+            media: {
+              transcodings: [transcoding('https://api.invalid/selected')]
+            }
+          }
+        }
+      : {
+          statusCode: 200,
+          body: { url: 'https://media.invalid/selected?expires=9999999999' }
+        }
+  const result = await s.getTrackUrl({ identifier: '300585048' })
+  assert.equal(result.url, 'https://media.invalid/selected?expires=9999999999')
+  assert.equal(calls, 2)
+})
+
+test('SoundCloud failed forced refresh evicts the failed stream so it cannot return on the next attempt', async () => {
+  const s = sc()
+  let cached = {
+    url: 'https://media.invalid/failed?expires=9999999999',
+    additionalData: { trackIdentifier: '300585048' }
+  }
+  s.nodelink.trackCacheManager.get = () => cached
+  s.nodelink.trackCacheManager.delete = () => {
+    cached = null
+    return true
+  }
+  request = async () => ({ statusCode: 503 })
+  assert.ok(
+    (await s.getTrackUrl({ identifier: '300585048' }, undefined, true))
+      .exception
+  )
+  assert.equal(cached, null)
+})
+
+test('SoundCloud cold/warm cache, stream-failure refresh and identity recovery remain on one track', async () => {
+  const s = sc()
+  const cache = new Map()
+  s.nodelink.trackCacheManager = {
+    get: (_source, id) => cache.get(id),
+    set: (_source, id, value) => cache.set(id, value),
+    delete: (_source, id) => cache.delete(id)
+  }
+  const body = {
+    id: 300585048,
+    media: { transcodings: [transcoding('https://api.invalid/selected')] }
+  }
+  const responses = [
+    { statusCode: 200, body },
+    {
+      statusCode: 200,
+      body: { url: 'https://media.invalid/selected?expires=9999999999' }
+    },
+    { statusCode: 503 },
+    { statusCode: 200, body },
+    {
+      statusCode: 200,
+      body: { url: 'https://media.invalid/recovered?expires=9999999999' }
+    }
+  ]
+  let calls = 0
+  request = async () => responses[calls++]
+  const info = { identifier: '300585048' }
+  const cold = await s.getTrackUrl(info)
+  assert.equal(cold.additionalData.trackIdentifier, info.identifier)
+  assert.equal((await s.getTrackUrl(info)).url, cold.url)
+  assert.equal(calls, 2)
+  assert.ok((await s.getTrackUrl(info, undefined, true)).exception)
+  assert.equal(cache.size, 0)
+  const recovered = await s.getTrackUrl(info)
+  assert.equal(recovered.additionalData.trackIdentifier, info.identifier)
+  assert.equal(
+    recovered.url,
+    'https://media.invalid/recovered?expires=9999999999'
+  )
+  assert.equal(calls, 5)
+})

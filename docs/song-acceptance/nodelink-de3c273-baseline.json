@@ -1,0 +1,181 @@
+{
+  "scope": "Actual NodeLink source/manager code with real HTTP routed through provided Cloud proxy; no fabricated provider response, no Discord/server",
+  "timeUTC": "2026-10-16T01:54:56.556Z",
+  "requests": [
+    {
+      "host": "soundcloud.com",
+      "path": "/",
+      "status": 200
+    },
+    {
+      "host": "api-v2.soundcloud.com",
+      "path": "/search/tracks",
+      "status": 200
+    },
+    {
+      "host": "api-v2.soundcloud.com",
+      "path": "/resolve",
+      "status": 200
+    },
+    {
+      "host": "api-v2.soundcloud.com",
+      "path": "/media/soundcloud:tracks:300585048/18d6cb7b-ac85-49cf-ac16-4dde2bd5fbbd/stream/hls",
+      "status": 200
+    },
+    {
+      "host": "playback.media-streaming.soundcloud.cloud",
+      "path": "/s5xxQRWD7ccY/aac_160k/18d6cb7b-ac85-49cf-ac16-4dde2bd5fbbd/playlist.m3u8",
+      "status": 200
+    },
+    {
+      "host": "playback.media-streaming.soundcloud.cloud",
+      "path": "/s5xxQRWD7ccY/aac_160k/18d6cb7b-ac85-49cf-ac16-4dde2bd5fbbd/data000.m4s",
+      "status": 200
+    },
+    {
+      "host": "playback.media-streaming.soundcloud.cloud",
+      "path": "/s5xxQRWD7ccY/aac_160k/18d6cb7b-ac85-49cf-ac16-4dde2bd5fbbd/data001.m4s",
+      "status": 200
+    },
+    {
+      "host": "playback.media-streaming.soundcloud.cloud",
+      "path": "/s5xxQRWD7ccY/aac_160k/18d6cb7b-ac85-49cf-ac16-4dde2bd5fbbd/data002.m4s",
+      "status": 200
+    },
+    {
+      "host": "playback.media-streaming.soundcloud.cloud",
+      "path": "/s5xxQRWD7ccY/aac_160k/18d6cb7b-ac85-49cf-ac16-4dde2bd5fbbd/init.mp4",
+      "status": 200
+    },
+    {
+      "host": "playback.media-streaming.soundcloud.cloud",
+      "path": "/s5xxQRWD7ccY/aac_160k/18d6cb7b-ac85-49cf-ac16-4dde2bd5fbbd/data003.m4s",
+      "status": 200
+    },
+    {
+      "host": "playback.media-streaming.soundcloud.cloud",
+      "path": "/s5xxQRWD7ccY/aac_160k/18d6cb7b-ac85-49cf-ac16-4dde2bd5fbbd/data004.m4s",
+      "status": 200
+    },
+    {
+      "host": "playback.media-streaming.soundcloud.cloud",
+      "path": "/s5xxQRWD7ccY/aac_160k/18d6cb7b-ac85-49cf-ac16-4dde2bd5fbbd/data005.m4s"
+    }
+  ],
+  "proxyAdapter": true,
+  "setup": true,
+  "search": {
+    "loadType": "search",
+    "tracks": [
+      {
+        "title": "Elektronomia - Sky High [NCS Release]",
+        "author": "Elektronomia",
+        "length": 236301,
+        "identifier": "300585048",
+        "isSeekable": true,
+        "isStream": false,
+        "uri": "https://soundcloud.com/elektronomia/elektronomia-sky-high",
+        "artworkUrl": "https://i1.sndcdn.com/artworks-000200919021-zc6zfc-large.jpg",
+        "isrc": "QM42K1701373",
+        "sourceName": "soundcloud",
+        "position": 0
+      },
+      {
+        "title": "Elektronomia - Sky High [NCS Release]",
+        "author": "TheFlamingSavage 🔥",
+        "length": 238114,
+        "identifier": "324716355",
+        "isSeekable": true,
+        "isStream": false,
+        "uri": "https://soundcloud.com/theflamingsavage/elektronomia-sky-high-ncs-release",
+        "artworkUrl": "https://i1.sndcdn.com/artworks-000224574479-eb9tta-large.jpg",
+        "isrc": null,
+        "sourceName": "soundcloud",
+        "position": 0
+      },
+      {
+        "title": "Elektronomia - Sky High pt. II [NCS Release]",
+        "author": "NCS",
+        "length": 247661,
+        "identifier": "947160523",
+        "isSeekable": true,
+        "isStream": false,
+        "uri": "https://soundcloud.com/nocopyrightsounds/elektronomia-sky-high-ptii-ncs-release",
+        "artworkUrl": "https://i1.sndcdn.com/artworks-xvD4eAy7w0TtuK9p-9BMpQg-large.jpg",
+        "isrc": "GB2LD2010299",
+        "sourceName": "soundcloud",
+        "position": 0
+      },
+      {
+        "title": "Elektronomia - Sky High (Carpe Remix) [NCS Release]",
+        "author": "NCS",
+        "length": 98301,
+        "identifier": "2232651059",
+        "isSeekable": true,
+        "isStream": false,
+        "uri": "https://soundcloud.com/nocopyrightsounds/elektronomia-sky-high-carpe-remix-ncs-release",
+        "artworkUrl": "https://i1.sndcdn.com/artworks-9wfXuTr1tG28iOIX-kGni4A-large.png",
+        "isrc": "GXHT42500126",
+        "sourceName": "soundcloud",
+        "position": 0
+      },
+      {
+        "title": "Elektronomia - The Sky High [NCS Release]",
+        "author": "NCS",
+        "length": 195202,
+        "identifier": "2240356430",
+        "isSeekable": true,
+        "isStream": false,
+        "uri": "https://soundcloud.com/nocopyrightsounds/elektronomia-the-sky-high-ncs-release",
+        "artworkUrl": "https://i1.sndcdn.com/artworks-txB9iwJLfx7aQDAj-6yHPkg-large.png",
+        "isrc": "GXHT42500144",
+        "sourceName": "soundcloud",
+        "position": 0
+      }
+    ]
+  },
+  "selected": {
+    "title": "Elektronomia - Sky High [NCS Release]",
+    "author": "Elektronomia",
+    "length": 236301,
+    "identifier": "300585048",
+    "isSeekable": true,
+    "isStream": false,
+    "uri": "https://soundcloud.com/elektronomia/elektronomia-sky-high",
+    "artworkUrl": "https://i1.sndcdn.com/artworks-000200919021-zc6zfc-large.jpg",
+    "isrc": "QM42K1701373",
+    "sourceName": "soundcloud",
+    "position": 0
+  },
+  "cold": {
+    "ok": true,
+    "protocol": "hls",
+    "format": "aac_hls",
+    "host": "playback.media-streaming.soundcloud.cloud",
+    "replacement": null
+  },
+  "warm": {
+    "ok": true,
+    "protocol": "hls",
+    "format": "aac_hls",
+    "host": "playback.media-streaming.soundcloud.cloud",
+    "replacement": null
+  },
+  "cache": {
+    "reads": 2,
+    "hits": 1,
+    "entries": 1
+  },
+  "stream": {
+    "bytes": 808892,
+    "type": "fmp4-buffered"
+  },
+  "decode": {
+    "exit": 0,
+    "error": "",
+    "audibleIdentityVerified": false,
+    "seconds": 15,
+    "rms": 6399.755411851364,
+    "peak": 32768
+  }
+}
