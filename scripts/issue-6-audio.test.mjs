@@ -10,7 +10,12 @@ import config from '../config.default.ts'
 import Local from '../src/sources/local.ts'
 import { createAudioResource } from '../src/playback/processing/streamProcessor.ts'
 import { Decoder } from '../src/playback/opus/Opus.ts'
-import { AudioStageProbe, audioProbe } from '../src/diagnostics/audioStages.ts'
+import {
+  AudioStageProbe,
+  audioProbe,
+  audioDiagnosticsSnapshot,
+  bindToneRun
+} from '../src/diagnostics/audioStages.ts'
 import {
   TONE_NAME,
   TONE_WAV_SHA256,
@@ -125,6 +130,13 @@ test('actual local WAV -> native decode/DSP -> 500 Opus frames -> AES-GCM -> moc
       }
     }
     probe = audioProbe(GID)
+    assert.equal(
+      probe.bindRun(
+        'tone-nodelink-11111111-2222-4333-8444-555555555555',
+        TONE_WAV_SHA256
+      ),
+      true
+    )
     probe.attachVoice(connection)
     const ctx = context(dir),
       source = new Local(ctx)
@@ -180,6 +192,10 @@ test('actual local WAV -> native decode/DSP -> 500 Opus frames -> AES-GCM -> moc
     assert.ok(rms > 500)
     assert.ok(frequency > 430 && frequency < 450)
     const stages = probe.snapshot('offline_test')
+    assert.equal(
+      audioDiagnosticsSnapshot(GID).runId,
+      'tone-nodelink-11111111-2222-4333-8444-555555555555'
+    )
     assert.equal(stages.referenceWavMatch, true)
     assert.equal(stages.opusPackets, 500)
     assert.equal(stages.transportEncryptedFrames, 500)
@@ -341,4 +357,125 @@ test('successive sources in the diagnostic window cannot reuse a finalized input
   } finally {
     probe.finish()
   }
+})
+
+test('run binding rejects invalid/stale contexts and final snapshot retains observed readiness without retaining keys', () => {
+  const p = new AudioStageProbe(() => {})
+  const run = 'tone-nodelink-11111111-2222-4333-8444-555555555555'
+  assert.equal(p.bindRun('SECRET_SENTINEL', TONE_WAV_SHA256), false)
+  assert.equal(p.bindRun(run, 'wrong-reference'), false)
+  assert.equal(p.bindRun(run, TONE_WAV_SHA256), true)
+  assert.equal(p.bindRun(run, TONE_WAV_SHA256), false)
+  const c = {
+    state: { status: 'connected' },
+    udp: {},
+    udpInfo: { secretKey: Buffer.from('SECRET_SENTINEL') },
+    statistics: { packetsSent: 3, packetsLost: 0 }
+  }
+  p.attachVoice(c)
+  c.statistics.packetsSent = 503
+  p.finish('player_destroy')
+  c.state.status = 'destroyed'
+  c.udpInfo = null
+  const saved = p.snapshot('get_after_cleanup')
+  assert.equal(saved.runId, run)
+  assert.equal(saved.closed, true)
+  assert.equal(saved.voiceConnected, true)
+  assert.equal(saved.udpSecretPresent, true)
+  assert.equal(saved.udpCallbacksSent, 500)
+  assert.ok(!JSON.stringify(saved).includes('SECRET_SENTINEL'))
+  const late = new AudioStageProbe(() => {})
+  late.inputBytes = 1
+  assert.equal(late.bindRun(run, TONE_WAV_SHA256), false)
+  late.finish()
+})
+test('existing player JSON exposes metadata only when opted in; a read cannot create or re-arm diagnostics', async () => {
+  const { Player } = await import('../src/playback/player.ts')
+  const guildId = '100000000000000005',
+    run = 'tone-nodelink-11111111-2222-4333-8444-555555555555'
+  const fake = {
+    guildId,
+    track: null,
+    volumePercent: 100,
+    isPaused: false,
+    filters: {},
+    connStatus: 'connected',
+    connection: null,
+    voice: { token: 'SECRET_SENTINEL' },
+    _realPosition: () => 0
+  }
+  assert.equal(Player.prototype.toJSON.call(fake).audioDiagnostics, undefined)
+  try {
+    process.env.NODELINK_AUDIO_DIAGNOSTICS = 'true'
+    process.env.NODELINK_AUDIO_DIAGNOSTIC_GUILD_ID = guildId
+    assert.equal(audioDiagnosticsSnapshot(guildId), null)
+    assert.equal(Player.prototype.toJSON.call(fake).audioDiagnostics, undefined)
+    assert.equal(
+      bindToneRun(
+        guildId,
+        { sourceName: 'youtube', uri: '/private/' + TONE_NAME },
+        { sbrToneRunId: run, sbrToneReferenceSha256: TONE_WAV_SHA256 }
+      ),
+      false
+    )
+    assert.equal(audioDiagnosticsSnapshot(guildId), null)
+    assert.equal(
+      bindToneRun(
+        guildId,
+        { sourceName: 'local', uri: '/private/' + TONE_NAME },
+        { sbrToneRunId: run, sbrToneReferenceSha256: TONE_WAV_SHA256 }
+      ),
+      true
+    )
+    const p = audioProbe(guildId)
+    const data = Player.prototype.toJSON.call(fake).audioDiagnostics
+    assert.equal(data.runId, run)
+    assert.ok(!JSON.stringify(data).includes('SECRET_SENTINEL'))
+    assert.equal(
+      Player.prototype.toJSON.call({ ...fake, guildId: 'other' })
+        .audioDiagnostics,
+      undefined
+    )
+    p.finish()
+    assert.equal(audioProbe(guildId), null)
+    assert.equal(audioDiagnosticsSnapshot(guildId).closed, true)
+    delete process.env.NODELINK_AUDIO_DIAGNOSTICS
+    assert.equal(Player.prototype.toJSON.call(fake).audioDiagnostics, undefined)
+  } finally {
+    delete process.env.NODELINK_AUDIO_DIAGNOSTICS
+    delete process.env.NODELINK_AUDIO_DIAGNOSTIC_GUILD_ID
+  }
+})
+test('request log projection redacts voice credentials recursively without altering the live request', async () => {
+  const { redactRequestField } = await import(
+    '../src/diagnostics/redactRequest.ts'
+  )
+  const { LogSanitizer } = await import('../src/utils/sanitizer.ts')
+  const request = {
+    voice: {
+      token: 'SECRET_SENTINEL',
+      endpoint: 'SECRET_SENTINEL',
+      sessionId: 'SECRET_SENTINEL'
+    },
+    track: {
+      userData: { sbrToneRunId: 'safe-correlation', token: 'SECRET_SENTINEL' }
+    },
+    nested: {
+      Password: 'SECRET_SENTINEL',
+      authorization: 'SECRET_SENTINEL',
+      secretKey: 'SECRET_SENTINEL'
+    },
+    volume: 100
+  }
+  const before = structuredClone(request),
+    output = JSON.stringify(request, redactRequestField)
+  const sanitizer = new LogSanitizer()
+  assert.ok(
+    sanitizer.sanitize(JSON.stringify(request)).includes('SECRET_SENTINEL')
+  )
+  assert.ok(!sanitizer.sanitize(output).includes('SECRET_SENTINEL'))
+  assert.ok(!output.includes('SECRET_SENTINEL'))
+  assert.ok(output.includes('safe-correlation'))
+  assert.equal(JSON.parse(output).volume, 100)
+  assert.deepEqual(request, before)
 })

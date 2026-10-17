@@ -15,7 +15,10 @@
     "frequencyHz": 439.4,
     "stages": {
       "reason": "offline_test",
-      "elapsedMs": 173,
+      "runId": "tone-nodelink-11111111-2222-4333-8444-555555555555",
+      "referenceSha256": "36b1669700eabaa6183d81c2ebf32edb5485dfd66d43db5d2aa974060e0e5fec",
+      "closed": false,
+      "elapsedMs": 195,
       "inputBytes": 1920044,
       "referenceWavMatch": true,
       "pcmSamples": 960000,

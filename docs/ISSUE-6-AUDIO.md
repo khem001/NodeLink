@@ -10,7 +10,7 @@ were made. Production silence is not diagnosed or claimed fixed.**
 
 ## Offline evidence — 2026-10-17 UTC
 
-`npm test`: 28/28 pass, including eight new native/diagnostic tests.
+`npm test`: 31/31 pass, including eleven new native/diagnostic tests.
 `npm run type-check` and `npm run build -- --outDir /workspace/.build/NodeLink` pass.
 See `docs/test-results/issue-6-offline.json` for measured aggregate output.
 
@@ -43,10 +43,19 @@ in the JSON are test inputs, not observations of a real connection.
   observed inputs match the reference within this window.
 - Voice hooks call original methods with original receivers and are restored at
   cleanup. No codec, DAVE, transport, reconnect, search or fallback logic changes.
-- Logs contain only counts/booleans, an allowlisted transport mode and DAVE protocol
+- Final metadata survives cleanup without retaining a connection or keys. A run
+  UUID/reference SHA is bound only for the exact local tone. The existing
+  authenticated player JSON includes gated `audioDiagnostics`; reading it neither
+  creates nor re-arms diagnostics. SBR accepts only its current run/hash and
+  projects scalar counters, excluding the regular player's voice credentials.
+- Probe logs contain only counts/booleans, run UUID/reference hash, an allowlisted transport mode and DAVE protocol
   number. No guild/user/address, credentials, endpoints, packet bytes, keys, voice
   tokens or raw errors are emitted by this probe. Existing unrelated verbose
-  library logs still need review before sharing.
+  library logs still need review before sharing. The request-body logger now
+  redacts whole voice blocks and sensitive keys before the existing sanitizer.
+  A sentinel test reproduces generic voice-token leakage through the old regex
+  sanitizer and verifies removal without mutating the live request. This is a
+  logging fix, not a change to authentication or encryption.
 - Existing `sources.local` already accepts WAV. A gated metadata marker hashes
   only the fixed 1.92 MB reference filename. SBR refuses the track unless this
   marker, filename and source match; no new public route/server is introduced.
@@ -59,19 +68,25 @@ while unready/downgrading, or return null on encryption failure; this probe coun
 these separately. It does not force readiness, change keys or implement a bypass.
 `daveKeyPackageSent=true` alone is not evidence of a usable DAVE session.
 
-## Minimal Botkeep B test — after separate approval and audible SBR test A
+## Botkeep B as part of the single listening round
 
 Use the **existing** NodeLink host and SBR-001. Never run a duplicate bot in Cloud.
-Back up existing deployed SHAs/configuration privately first; obtain explicit
-approval before any sync/restart or configuration edit. Record actual installed
+The user has authorized temporary diagnostic deployment and necessary restart
+after verified backup/idle checks on these two hosts; no per-step repeat approval
+is needed. Permanent changes/merge remain unauthorized. Record actual installed
 voice/DAVE versions and deployment SHAs; they are not known from these checkouts.
+Cloud has no Botkeep control credential/connector/SSH agent; public Botkeep HTTPS
+is blocked with CONNECT 403. The actual supported control method is not yet known.
+No deployment or restart was performed. See SBR `ISSUE-6-AUDIO.md` for the single
+bundled access request, evidence and complete backup/rollback procedure.
 
-1. After approved deployment, inspect actual `sources.local.enabled` and
+1. Before temporary deployment, inspect actual `sources.local.enabled` and
    `sources.local.basePath` on the existing NodeLink host. Checked-in
    `config.default.ts` uses `enabled:true`, `basePath:'./local-music/'`; the
    class fallback is `./` only if no configured base exists. Do not assume a host
    path or enable a new public source. If the actual source is disabled/unwritable,
-   report it and seek the usual configuration approval first.
+   report it; resolve only the necessary diagnostic setting under the user's
+   authorization after backup. Do not change unrelated sources.
 2. In that existing NodeLink checkout, generate the reference into the approved
    local base using the current Node 24 runtime. For the checked-in base only:
 
@@ -80,12 +95,12 @@ voice/DAVE versions and deployment SHAs; they are not known from these checkouts
    sha256sum ./local-music/sbr-tone-440hz-10s.wav
    ```
 
-   The directory must exist in the private base; create only if separately approved.
+   The directory must exist in the private base; create only the private diagnostic directory if needed.
    Generator refuses to overwrite a file, uses mode 0600, and never prints the
    destination path. Expected SHA-256:
    `36b1669700eabaa6183d81c2ebf32edb5485dfd66d43db5d2aa974060e0e5fec`.
    If the name exists, check its hash; do not overwrite/delete unknown files.
-3. After approval, set the following non-secret diagnostic options on the existing
+3. After backup/idle checks, set the following non-secret diagnostic options on the existing
    NodeLink host via its normal configuration procedure. No new password/token:
 
    ```text
@@ -96,8 +111,12 @@ voice/DAVE versions and deployment SHAs; they are not known from these checkouts
    The first matching player/resource starts the one-time 60 s window. Keep this
    guild idle until test B. Do not use normal music in that guild first or re-arm
    automatically. Other guilds are not probed.
-4. Follow the SBR guide's gate and run `/tone-test route:nodelink` **once** in the
-   same idle guild after A was heard. The temporary player has AGC off, no filters,
+4. Follow SBR's user/guild/**channel** gate and run `/tone-test route:ab` **once**.
+   It announces Direct A, cleans up, then automatically announces and plays B.
+   Listen to both in this one round, then select the one authorized feedback
+   choice and retain the attached redacted comparison. B may follow an A failure
+   only when its cleanup is confirmed; no A/B pass is inferred. The temporary
+   player has AGC off, no filters,
    volume 100; the reference itself peaks at about −30.45 dBFS. SBR resolves only
    `local:sbr-tone-440hz-10s.wav`, then stops/destroys/leaves after completion/error.
    Local WAV duration metadata currently reports `-1`; 500 decoded frames prove
@@ -106,8 +125,8 @@ voice/DAVE versions and deployment SHAs; they are not known from these checkouts
    log summaries. `pipeline_drained` proves production, not consumption; inspect
    later voice/UDP summaries and the final `player_destroy`/`window_expired` report.
 
-Do not start/stop existing production services to induce failures. After approved
-testing, disable both projects' flags through an approved config/restart, restore
+Do not start/stop existing production services to induce failures. After temporary
+testing, restore both projects' previous flags using the necessary idle-host restart and restore
 the backed-up revisions if rolling back, and remove only this generated asset.
 No Neon data, bot identity, normal queue/session/settings or secrets need changing.
 

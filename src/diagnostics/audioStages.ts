@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { Transform, type Readable } from 'node:stream'
 
-import { TONE_WAV_SHA256 } from './toneReference.ts'
+import { TONE_NAME, TONE_WAV_SHA256 } from './toneReference.ts'
 type MLS = {
   protocolVersion?: number
   session?: { ready?: boolean }
@@ -27,13 +27,46 @@ type Connection = {
   _sendEncryptedPacket?: (packet: Buffer) => unknown
 }
 const probes = new Map<string, AudioStageProbe>()
-export function audioProbe(guildId: string): AudioStageProbe | null {
-  if (
-    process.env.NODELINK_AUDIO_DIAGNOSTICS !== 'true' ||
-    !/^\d{17,20}$/.test(process.env.NODELINK_AUDIO_DIAGNOSTIC_GUILD_ID ?? '') ||
-    guildId !== process.env.NODELINK_AUDIO_DIAGNOSTIC_GUILD_ID
+function allowed(guildId: string): boolean {
+  return (
+    process.env.NODELINK_AUDIO_DIAGNOSTICS === 'true' &&
+    /^\d{17,20}$/.test(process.env.NODELINK_AUDIO_DIAGNOSTIC_GUILD_ID ?? '') &&
+    guildId === process.env.NODELINK_AUDIO_DIAGNOSTIC_GUILD_ID
   )
-    return null
+}
+// Reading an authenticated player must never create/re-arm a probe.
+export function audioDiagnosticsSnapshot(
+  guildId: string
+): Record<string, unknown> | null {
+  if (!allowed(guildId)) return null
+  return probes.get(guildId)?.snapshot('player_read') ?? null
+}
+export function bindToneRun(
+  guildId: string,
+  info: { sourceName?: string; uri?: string },
+  userData: unknown
+): boolean {
+  if (!allowed(guildId)) return false
+  if (
+    info.sourceName !== 'local' ||
+    !String(info.uri ?? '')
+      .replace(/\\/g, '/')
+      .endsWith('/' + TONE_NAME) ||
+    !userData ||
+    typeof userData !== 'object' ||
+    Array.isArray(userData)
+  )
+    return false
+  const data = userData as Record<string, unknown>
+  return (
+    audioProbe(guildId)?.bindRun(
+      data.sbrToneRunId,
+      data.sbrToneReferenceSha256
+    ) ?? false
+  )
+}
+export function audioProbe(guildId: string): AudioStageProbe | null {
+  if (!allowed(guildId)) return null
   if (!probes.has(guildId))
     probes.set(
       guildId,
@@ -65,6 +98,8 @@ export class AudioStageProbe {
   private cleanups: Array<() => void> = []
   private sessions = new WeakSet<object>()
   private started = Date.now()
+  private runId: string | null = null
+  private finalSnapshot: Record<string, unknown> | null = null
   private timer: ReturnType<typeof setInterval>
   private deadline: ReturnType<typeof setTimeout>
   closed = false
@@ -78,6 +113,20 @@ export class AudioStageProbe {
     this.timer.unref?.()
     this.deadline = setTimeout(() => this.finish('window_expired'), windowMs)
     this.deadline.unref?.()
+  }
+  bindRun(runId: unknown, reference: unknown): boolean {
+    if (
+      this.closed ||
+      this.runId !== null ||
+      this.inputBytes !== 0 ||
+      this.opusPackets !== 0 ||
+      typeof runId !== 'string' ||
+      !/^tone-nodelink-[0-9a-f-]{20,64}$/.test(runId) ||
+      reference !== TONE_WAV_SHA256
+    )
+      return false
+    this.runId = runId
+    return true
   }
   observeInput(input: Readable) {
     // Attach only after the real decoder pipeline has a consumer. Never put
@@ -211,10 +260,15 @@ export class AudioStageProbe {
     this.report('voice_attached')
   }
   snapshot(reason: string): Record<string, unknown> {
+    if (this.closed && this.finalSnapshot)
+      return { ...this.finalSnapshot, reason, closed: true }
     const c = this.connection,
       m = c?.mlsSession
     return {
       reason,
+      runId: this.runId,
+      referenceSha256: this.runId ? TONE_WAV_SHA256 : null,
+      closed: this.closed,
       elapsedMs: Date.now() - this.started,
       inputBytes: this.inputBytes,
       referenceWavMatch: this.referenceMatch,
@@ -273,7 +327,8 @@ export class AudioStageProbe {
   }
   finish(reason = 'cleanup') {
     if (this.closed) return
-    this.report(reason)
+    this.finalSnapshot = this.snapshot(reason)
+    this.emit(this.finalSnapshot)
     this.closed = true
     clearInterval(this.timer)
     clearTimeout(this.deadline)

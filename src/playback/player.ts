@@ -1,7 +1,7 @@
 import type { Readable } from 'node:stream'
 import { PassThrough } from 'node:stream'
 import { setTimeout as sleep } from 'node:timers/promises'
-import { audioProbe } from '../diagnostics/audioStages.ts'
+import { audioProbe, audioDiagnosticsSnapshot, bindToneRun } from '../diagnostics/audioStages.ts'
 import { SeekError } from '@ecliptia/seekable-stream'
 import discordVoice, {
   type VoiceAudioStream,
@@ -2178,6 +2178,7 @@ export class Player {
           userData: userData ?? {},
           audioTrackId
         }
+        bindToneRun(this.guildId, info, userData)
         this._fading('reset')
 
         if (!this.voice.endpoint || !this.voice.token) {
@@ -4079,7 +4080,9 @@ export class Player {
       'Player',
       `[Action: toJSON] Method invoked for guild ${this.guildId}`
     )
+    const diagnostics = audioDiagnosticsSnapshot(this.guildId)
     return {
+      ...(diagnostics ? { audioDiagnostics: diagnostics } : {}),
       guildId: this.guildId,
       track: this.track,
       volume: this.volumePercent,

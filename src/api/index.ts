@@ -2,6 +2,7 @@ import fs from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PATH_VERSION } from '../constants.ts'
+import { redactRequestField } from '../diagnostics/redactRequest.ts'
 import type {
   ApiHeaders,
   ApiHttpMethod,
@@ -632,7 +633,7 @@ async function requestHandler(
       `${req.method} | ${clientAddress} [${getHeaderValue(
         headerAccess['user-agent']
       )}] - ${parsedUrl.pathname} ${JSON.stringify(req.headers)}${
-        req.body ? `\nBody: ${JSON.stringify(req.body)}` : ''
+        req.body ? `\nBody: ${JSON.stringify(req.body, redactRequestField)}` : ''
       }`
     )
   }
