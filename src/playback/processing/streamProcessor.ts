@@ -1,3 +1,7 @@
+import {
+  audioProbe,
+  type AudioStageProbe
+} from '../../diagnostics/audioStages.ts'
 /** biome-ignore-all assist/source/organizeImports: <no-op> */
 import {
   PassThrough,
@@ -2783,6 +2787,7 @@ class FLVToAACStream extends Transform {
 }
 
 class StreamAudioResource extends BaseAudioResource {
+  private diagnostic: AudioStageProbe | null = null
   private nodelink: NodeLink
   private frameCounter: PCMFrameCounter | null = null
 
@@ -2802,6 +2807,7 @@ class StreamAudioResource extends BaseAudioResource {
 
     this.nodelink = nodelink
     this._validateInputStream(stream)
+    this.diagnostic = audioProbe(guildId)
 
     const resamplingQuality =
       nodelink.options.playback.audio?.resamplingQuality || 'fastest'
@@ -2831,6 +2837,7 @@ class StreamAudioResource extends BaseAudioResource {
     }
 
     this._setupEventHandlers(stream)
+    this.diagnostic?.observeInput(stream)
   }
 
   _validateInputStream(stream: Readable): void {
@@ -3067,6 +3074,11 @@ class StreamAudioResource extends BaseAudioResource {
     opusEncoder.setDTX(false)
 
     const streams: Transform[] = [pcmStream]
+    if (this.diagnostic) {
+      const tap = this.diagnostic.tap('pcm')
+      streams.push(tap)
+      this.pipes?.push(tap)
+    }
     if (enableCrossfade) {
       const crossfadeController = new CrossfadeController()
       crossfadeController.on('bridgeStart', () => {
@@ -3102,8 +3114,18 @@ class StreamAudioResource extends BaseAudioResource {
       }
     }
 
+    if (this.diagnostic) {
+      const tap = this.diagnostic.tap('output')
+      streams.push(tap)
+      this.pipes?.push(tap)
+    }
     streams.push(opusEncoder)
     this.pipes?.push(opusEncoder)
+    const output = this.diagnostic?.tap('opus')
+    if (output) {
+      streams.push(output)
+      this.pipes?.push(output)
+    }
 
     pipeline(streams as unknown as Readable[], (err: Error | null): void => {
       if (err && !this._destroyed) {
@@ -3111,7 +3133,8 @@ class StreamAudioResource extends BaseAudioResource {
       }
     })
 
-    this._assignStream(opusEncoder)
+    this._assignStream(output ?? opusEncoder)
+    this.stream?.once('end', () => this.diagnostic?.report('pipeline_drained'))
   }
 
   getConsumedMs(): number {
@@ -3246,6 +3269,7 @@ class StreamAudioResource extends BaseAudioResource {
     wrappedSource?.on?.('finishBuffering', forwardFinishBuffering)
 
     inputStream.on('error', (err: Error) => {
+      this.diagnostic?.error()
       emitResourceError(this.stream, err)
     })
 
@@ -3253,6 +3277,7 @@ class StreamAudioResource extends BaseAudioResource {
       for (const pipe of this.pipes) {
         if (pipe !== this.stream) {
           pipe.on?.('error', (err: Error) => {
+            this.diagnostic?.error()
             emitResourceError(this.stream, err)
           })
         }

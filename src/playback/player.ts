@@ -1,6 +1,7 @@
 import type { Readable } from 'node:stream'
 import { PassThrough } from 'node:stream'
 import { setTimeout as sleep } from 'node:timers/promises'
+import { audioProbe, audioDiagnosticsSnapshot, bindToneRun } from '../diagnostics/audioStages.ts'
 import { SeekError } from '@ecliptia/seekable-stream'
 import discordVoice, {
   type VoiceAudioStream,
@@ -456,6 +457,8 @@ export class Player {
       channelId: this.voice.channelId || this.guildId,
       encryption: this.nodelink.options?.playback.audio?.encryption ?? null
     })
+    const diagnostic = audioProbe(this.guildId)
+    diagnostic?.attachVoice(this.connection)
     this.connection.stuckTimeout =
       Math.max(
         this.nodelink.options.playback.trackStuckThresholdMs ?? 10000,
@@ -473,6 +476,8 @@ export class Player {
       this._onConn(s)
     }
     this.connection.on('stateChange', this._connStateHandler)
+    if (diagnostic)
+      this.connection.on('stateChange', () => diagnostic.report('voice_state'))
     this._connPlayHandler = (
       _: VoicePlayerState | null,
       s: VoicePlayerState & { reason?: string }
@@ -2173,6 +2178,7 @@ export class Player {
           userData: userData ?? {},
           audioTrackId
         }
+        bindToneRun(this.guildId, info, userData)
         this._fading('reset')
 
         if (!this.voice.endpoint || !this.voice.token) {
@@ -3577,6 +3583,7 @@ export class Player {
           this._cleanupCurrentAudioStream('destroy')
         }
         this._cleanupSSRCStreams(this.connection)
+        audioProbe(this.guildId)?.finish('player_destroy')
         this.connection.destroy()
 
         if (this.duckingController) {
@@ -4073,7 +4080,9 @@ export class Player {
       'Player',
       `[Action: toJSON] Method invoked for guild ${this.guildId}`
     )
+    const diagnostics = audioDiagnosticsSnapshot(this.guildId)
     return {
+      ...(diagnostics ? { audioDiagnostics: diagnostics } : {}),
       guildId: this.guildId,
       track: this.track,
       volume: this.volumePercent,

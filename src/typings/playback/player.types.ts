@@ -530,6 +530,7 @@ export interface PlayPayload {
  * JSON-safe representation of a player used in gateway events.
  */
 export interface PlayerStateJSON {
+  audioDiagnostics?: Record<string, unknown>
   guildId: string
   track: PlayerTrack | null
   volume: number
