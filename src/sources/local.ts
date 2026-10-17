@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+import { TONE_NAME, TONE_WAV_SHA256 } from '../diagnostics/toneReference.ts'
 import fs from 'node:fs'
 import path from 'node:path'
 import type {
@@ -631,6 +633,22 @@ export default class LocalSource {
 
       const metadata = this.readFileInfo(filePath)
       const track = this.buildTrack(filePath, metadata)
+      // Only mark the bounded opt-in synthetic diagnostic asset; ordinary
+      // local files and all music providers retain their original behavior.
+      if (
+        process.env.NODELINK_AUDIO_DIAGNOSTICS === 'true' &&
+        /^\d{17,20}$/.test(
+          process.env.NODELINK_AUDIO_DIAGNOSTIC_GUILD_ID ?? ''
+        ) &&
+        path.basename(filePath) === TONE_NAME &&
+        stats.size === 1920044
+      ) {
+        const digest = createHash('sha256')
+          .update(await fs.promises.readFile(filePath))
+          .digest('hex')
+        if (digest === TONE_WAV_SHA256)
+          track.pluginInfo.syntheticToneSha256 = digest
+      }
 
       logger(
         'debug',

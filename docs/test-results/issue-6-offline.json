@@ -1,0 +1,58 @@
+{
+  "reference": {
+    "wavSha256": "36b1669700eabaa6183d81c2ebf32edb5485dfd66d43db5d2aa974060e0e5fec",
+    "seconds": 10,
+    "hz": 440,
+    "amplitude": 0.03
+  },
+  "discordLive": false,
+  "providerRequests": 0,
+  "nodeLinkLocal": {
+    "frames": 500,
+    "seconds": 10,
+    "rms": 694.6276404979506,
+    "peak": 991,
+    "frequencyHz": 439.4,
+    "stages": {
+      "reason": "offline_test",
+      "elapsedMs": 173,
+      "inputBytes": 1920044,
+      "referenceWavMatch": true,
+      "pcmSamples": 960000,
+      "pcmRms": 692.7610450641212,
+      "outputSamples": 960000,
+      "outputRms": 692.7604978468989,
+      "opusPackets": 500,
+      "opusBytes": 191389,
+      "errors": 0,
+      "voiceOpusFrames": 500,
+      "transportEncryptedFrames": 500,
+      "udpSocketPresent": true,
+      "udpSecretPresent": true,
+      "voiceConnected": true,
+      "voiceState": "connected",
+      "transportMode": "aead_aes256_gcm_rtpsize",
+      "daveSessionPresent": false,
+      "daveProtocol": null,
+      "daveReady": null,
+      "daveExternalSenderSet": null,
+      "daveKeyPackageSent": false,
+      "daveTransitioning": null,
+      "daveEncryptedFrames": 0,
+      "daveBypassFrames": 0,
+      "daveDroppedFrames": 0,
+      "udpCallbacksSent": 500,
+      "udpCallbacksFailed": 0,
+      "audibleVerified": false
+    },
+    "udpSink": "loopback-free in-memory mock, not Discord",
+    "daveLiveNegotiation": false
+  },
+  "daveCapability": {
+    "voiceVersion": "2.2.15",
+    "daveProtocol": 1,
+    "nativeSessionConstructed": true,
+    "readyWithoutDiscord": false,
+    "liveNegotiation": false
+  }
+}
